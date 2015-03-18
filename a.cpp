@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstring>
 using namespace std;
+int minPercent;
 
 vector<int> getListAtString(char *buf) {
     vector<int> ret;
@@ -49,6 +50,56 @@ bool isSetInSet(set<int>& s1,set<int> &s2) {
     return ret;
 }
 
+void go(int pos,vector<int>& v,vector<int>& res,int cnt) {
+    if ( pos == (int)v.size() ) {
+        if ( (int)v.size() == (int)res.size() ) return ;
+        if ( res.empty() ) return ;
+        puts("@@@@@");
+        printf("{");
+        for ( int i = 0 ; i < (int)res.size() ; i++ )
+            printf("%d%s",res[i],(i==(int)res.size()-1)?"":",");
+        printf("}\t");
+        printf("{");
+        bool isFirst = true;
+        for ( int i = 0 ; i < (int)v.size() ; i++ ) {
+            bool find = false;
+            for ( int j = 0 ; j < (int)res.size() ; j++ )
+                if ( v[i] == res[j] )
+                    find = true;
+            if ( !find ) {
+                printf("%s%d",isFirst?"":",",v[i]);
+                isFirst = false;
+            }
+        }
+        printf("}\t");
+        printf("%.2lf\n",(double)cnt/minPercent);
+        puts("@@@@@");
+
+        return ;
+    }
+    go(pos+1,v,res,cnt);
+    res.push_back(v[pos]);
+    go(pos+1,v,res,cnt);
+    res.pop_back();
+}
+void printAssociation(vector<set<int> >& v,vector<set<int> >& transactionDataBase){
+    for ( int i = 0 ; i < (int)v.size() ; i++ ) {
+        int cnt = 0;
+        for ( int j = 0 ; j < (int)transactionDataBase.size() ; j++ ) {
+            if ( isSetInSet(transactionDataBase[j],v[i]) ) 
+                cnt ++;
+        }
+        if ( cnt < minPercent ) continue;
+        vector<int> now;
+        for ( set<int>::iterator it=v[i].begin();it!=v[i].end();it++ )
+            now.push_back(*it);
+        vector<int> res;
+        go(0,now,res,cnt);
+        now.clear();
+        res.clear();
+    }
+}
+
 int main(int argc,char *argv[]) {
     assert(argc==4);
 
@@ -71,6 +122,8 @@ int main(int argc,char *argv[]) {
     }
     assert(!isExistsSameData(data));
 
+    int numTransaction = (int)data.size();
+
     vector<set<int> > transactionDataBase;
     for ( int i = 0 ; i < (int)data.size() ; i++ ) {
         set<int> s;
@@ -78,6 +131,7 @@ int main(int argc,char *argv[]) {
             s.insert(data[i][j]);
         transactionDataBase.push_back(s);
     }
+
     vector<pair<set<int>,int> > itemSet;
     for ( int i = 0 ; i < (int)transactionDataBase.size() ; i++ ) {
         for ( set<int>::iterator it=transactionDataBase[i].begin();
@@ -99,12 +153,17 @@ int main(int argc,char *argv[]) {
 
     vector<set<int> > eraseSet;
     vector<set<int> > remainSet;
+
+    minPercent = (int)(minSupport*numTransaction/100);
+    printf("minPercent : %d\n",minPercent);
+    printf("numTransaction : %d\n",numTransaction);
     for ( vector<pair<set<int>,int> >::iterator it=itemSet.begin();
             it!=itemSet.end();it++ ) {
-        if ( (*it).second < minSupport )
+        if ( (*it).second < minPercent )
             eraseSet.push_back((*it).first);
         else remainSet.push_back((*it).first);
     }
+
     for ( vector<pair<set<int>,int> >::iterator it=itemSet.begin();
             it!=itemSet.end();it++ ) {
         printSet((*it).first);
@@ -154,7 +213,7 @@ int main(int argc,char *argv[]) {
             for ( int j = 0 ; j < (int)transactionDataBase.size() ; j++ ) 
                 if ( isSetInSet(transactionDataBase[j],nextSet[i]) ) 
                     cnt++;
-            if ( cnt < minSupport ) {
+            if ( cnt < minPercent ) {
                 change = true;
                 bool isExists = false;
                 for ( int j = 0 ; j < (int)eraseSet.size() ; j++ ) 
@@ -174,6 +233,7 @@ int main(int argc,char *argv[]) {
 
         puts("remainSet");
         printVectorSet(remainSet);
+        printAssociation(remainSet,transactionDataBase);
         puts("eraseSet");
         printVectorSet(eraseSet);
     }
